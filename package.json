@@ -1,0 +1,8 @@
+{
+  "name": "nova-rain",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "start": "python -m http.server 4173"
+  }
+}

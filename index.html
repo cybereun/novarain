@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>Nova Rain</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">2D Arcade Shooting</p>
+          <h1>NOVA RAIN</h1>
+        </div>
+        <div class="status-cluster">
+          <div class="status-card">
+            <span>Stage</span>
+            <strong id="stage">1</strong>
+          </div>
+          <div class="status-card">
+            <span>Score</span>
+            <strong id="score">0</strong>
+          </div>
+          <div class="status-card">
+            <span>Wave</span>
+            <strong id="wave">1</strong>
+          </div>
+          <div class="status-card">
+            <span>Bomb</span>
+            <strong id="bombs">3</strong>
+          </div>
+        </div>
+      </header>
+
+      <main class="arena-frame">
+        <canvas id="game" width="480" height="800"></canvas>
+
+        <section class="hud left-panel">
+          <div class="meter-block">
+            <label>Hull</label>
+            <div class="meter"><div id="health-fill" class="fill health"></div></div>
+          </div>
+          <div class="meter-block">
+            <label>Energy</label>
+            <div class="meter"><div id="energy-fill" class="fill energy"></div></div>
+          </div>
+          <div class="detail">
+            <span>Weapon</span>
+            <strong id="weapon">Pulse</strong>
+          </div>
+          <div class="detail">
+            <span>Multiplier</span>
+            <strong id="multiplier">x1</strong>
+          </div>
+          <div class="detail">
+            <span>Threat</span>
+            <strong id="threat">Calm</strong>
+          </div>
+        </section>
+
+        <section class="hud right-panel">
+          <div class="chip">Move: WASD / Arrows</div>
+          <div class="chip">Shoot: Space</div>
+          <div class="chip">Bomb: Shift / B</div>
+          <div class="chip">Pause: P</div>
+          <div class="chip accent">Loot modules to swap weapons</div>
+        </section>
+
+        <section id="overlay" class="overlay hidden">
+          <div class="overlay-card">
+            <p id="overlay-tag" class="eyebrow">파일럿 브리핑</p>
+            <h2 id="overlay-title">노바 레인</h2>
+            <p id="overlay-body">
+              침공 함대를 격파하고, 장비 상자를 모아 무장을 교체하며, 점점 거세지는 탄막 속에서 3발의 비상 폭탄으로 끝까지 살아남으세요.
+            </p>
+            <button id="overlay-button" type="button">작전 시작</button>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer-note">개발자 : GSGcaptain</footer>
+    </div>
+
+    <script type="module" src="./src/game.js"></script>
+  </body>
+</html>
