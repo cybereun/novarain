@@ -32,6 +32,10 @@ body {
   justify-content: center;
 }
 
+body.mobile-mode {
+  overscroll-behavior: none;
+}
+
 .shell {
   width: min(100%, 1200px);
   min-height: 100vh;
@@ -166,6 +170,10 @@ canvas {
   background: #020711;
 }
 
+body.mobile-mode canvas {
+  touch-action: none;
+}
+
 .hud {
   position: absolute;
   z-index: 2;
@@ -242,6 +250,50 @@ canvas {
   font-weight: 700;
 }
 
+.mobile-controls {
+  display: none;
+}
+
+.mobile-tip,
+.mobile-bomb {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: 0 12px 45px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(10px);
+}
+
+.mobile-tip {
+  border-radius: 18px;
+  padding: 10px 14px;
+}
+
+.mobile-tip strong,
+.mobile-tip span {
+  display: block;
+}
+
+.mobile-tip strong {
+  font-size: 0.9rem;
+  letter-spacing: 0.08em;
+}
+
+.mobile-tip span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.mobile-bomb {
+  margin-top: 0;
+  min-width: 108px;
+  padding: 14px 18px;
+}
+
+.mobile-bomb:disabled {
+  opacity: 0.45;
+  filter: grayscale(0.2);
+}
+
 .overlay {
   position: absolute;
   inset: 0;
@@ -293,7 +345,7 @@ button:hover {
 @media (max-width: 920px) {
   .arena-frame {
     min-height: auto;
-    padding: 76px 12px 12px;
+    padding: 92px 12px 18px;
   }
 
   .hud {
@@ -326,4 +378,80 @@ button:hover {
   .status-cluster {
     justify-content: flex-start;
   }
+}
+
+body.mobile-mode .shell {
+  width: 100%;
+  max-width: 100%;
+  padding: 10px;
+}
+
+body.mobile-mode .topbar {
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+body.mobile-mode .status-cluster {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+body.mobile-mode .status-card {
+  min-width: 72px;
+  padding: 8px 10px;
+  border-radius: 14px;
+}
+
+body.mobile-mode .status-card strong {
+  font-size: 1.05rem;
+}
+
+body.mobile-mode .arena-frame {
+  min-height: auto;
+  padding: 88px 8px 88px;
+}
+
+body.mobile-mode .left-panel {
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  width: auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px 12px;
+  align-items: end;
+}
+
+body.mobile-mode .meter-block + .meter-block,
+body.mobile-mode .detail + .detail {
+  margin-top: 0;
+}
+
+body.mobile-mode .meter-block {
+  grid-column: span 3;
+}
+
+body.mobile-mode .detail strong {
+  font-size: 1rem;
+}
+
+body.mobile-mode .right-panel {
+  display: none;
+}
+
+body.mobile-mode .mobile-controls {
+  position: absolute;
+  z-index: 2;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+body.mobile-mode .footer-note {
+  margin-top: 10px;
+  font-size: 0.8rem;
 }

@@ -17,6 +17,7 @@ const ui = {
   overlayTitle: document.getElementById("overlay-title"),
   overlayBody: document.getElementById("overlay-body"),
   overlayButton: document.getElementById("overlay-button"),
+  mobileBomb: document.getElementById("mobile-bomb"),
 };
 
 const WIDTH = canvas.width;
@@ -28,6 +29,19 @@ const keys = new Set();
 const audio = createAudioSystem();
 const spriteSheet = loadShipSprites();
 const pickupSprites = loadPickupSprites();
+let isMobileMode = detectMobileMode();
+const mobileInput = {
+  active: false,
+  pointerId: null,
+  targetX: WIDTH / 2,
+  targetY: HEIGHT - 88,
+};
+const mobileBombPress = {
+  pointerId: null,
+  timer: null,
+  longPressTriggered: false,
+};
+const MOBILE_CHEAT_HOLD_MS = 650;
 
 const threatLabels = ["안정", "경계", "위험", "치명", "악몽"];
 
@@ -141,6 +155,7 @@ function createGameState() {
 }
 
 let game = createGameState();
+applyControlScheme();
 showOverlay(
   "파일럿 브리핑",
   "Nova Rain",
@@ -178,6 +193,8 @@ window.addEventListener("keyup", (event) => {
   keys.delete(event.code);
 });
 
+window.addEventListener("resize", applyControlScheme);
+
 window.addEventListener("pointerdown", () => {
   audio.resume();
 });
@@ -185,6 +202,15 @@ window.addEventListener("pointerdown", () => {
 canvas.addEventListener("pointerdown", () => {
   audio.resume();
 });
+
+canvas.addEventListener("pointerdown", handleCanvasPointerDown);
+canvas.addEventListener("pointermove", handleCanvasPointerMove);
+canvas.addEventListener("pointerup", handleCanvasPointerUp);
+canvas.addEventListener("pointercancel", handleCanvasPointerUp);
+
+ui.mobileBomb.addEventListener("pointerdown", handleMobileBombPointerDown);
+ui.mobileBomb.addEventListener("pointerup", handleMobileBombPointerUp);
+ui.mobileBomb.addEventListener("pointercancel", handleMobileBombPointerCancel);
 
 ui.overlayButton.addEventListener("click", () => {
   audio.resume();
@@ -198,6 +224,9 @@ ui.overlayButton.addEventListener("click", () => {
 
 function resetGame() {
   game = createGameState();
+  mobileInput.targetX = WIDTH / 2;
+  mobileInput.targetY = HEIGHT - 88;
+  clearMobileBombPress();
   hideOverlay();
   audio.resume();
   game.mode = "playing";
@@ -213,6 +242,119 @@ function showOverlay(tag, title, body, buttonText) {
 
 function hideOverlay() {
   ui.overlay.classList.add("hidden");
+}
+
+function detectMobileMode() {
+  const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
+  return window.innerWidth <= 920 && (coarsePointer || navigator.maxTouchPoints > 0);
+}
+
+function applyControlScheme() {
+  isMobileMode = detectMobileMode();
+  document.body.classList.toggle("mobile-mode", isMobileMode);
+  if (!isMobileMode) {
+    mobileInput.active = false;
+    mobileInput.pointerId = null;
+    clearMobileBombPress();
+  }
+}
+
+function getCanvasPoint(event) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: ((event.clientX - rect.left) / rect.width) * WIDTH,
+    y: ((event.clientY - rect.top) / rect.height) * HEIGHT,
+  };
+}
+
+function updateMobileTarget(event) {
+  const point = getCanvasPoint(event);
+  mobileInput.targetX = Math.max(34, Math.min(WIDTH - 34, point.x));
+  mobileInput.targetY = Math.max(72, Math.min(HEIGHT - 48, point.y));
+}
+
+function handleCanvasPointerDown(event) {
+  if (!isMobileMode) {
+    return;
+  }
+
+  event.preventDefault();
+  audio.resume();
+  mobileInput.active = true;
+  mobileInput.pointerId = event.pointerId;
+  updateMobileTarget(event);
+  canvas.setPointerCapture(event.pointerId);
+}
+
+function handleCanvasPointerMove(event) {
+  if (!isMobileMode || !mobileInput.active || event.pointerId !== mobileInput.pointerId) {
+    return;
+  }
+
+  event.preventDefault();
+  updateMobileTarget(event);
+}
+
+function handleCanvasPointerUp(event) {
+  if (!isMobileMode || event.pointerId !== mobileInput.pointerId) {
+    return;
+  }
+
+  mobileInput.active = false;
+  mobileInput.pointerId = null;
+  if (canvas.hasPointerCapture(event.pointerId)) {
+    canvas.releasePointerCapture(event.pointerId);
+  }
+}
+
+function clearMobileBombPress() {
+  if (mobileBombPress.timer) {
+    clearTimeout(mobileBombPress.timer);
+  }
+  mobileBombPress.pointerId = null;
+  mobileBombPress.timer = null;
+  mobileBombPress.longPressTriggered = false;
+}
+
+function handleMobileBombPointerDown(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  audio.resume();
+  if (!isMobileMode || game.mode !== "playing") {
+    return;
+  }
+
+  clearMobileBombPress();
+  mobileBombPress.pointerId = event.pointerId;
+  mobileBombPress.timer = setTimeout(() => {
+    if (mobileBombPress.pointerId !== event.pointerId || game.mode !== "playing") {
+      return;
+    }
+    mobileBombPress.longPressTriggered = true;
+    toggleCheatMode(game);
+  }, MOBILE_CHEAT_HOLD_MS);
+}
+
+function handleMobileBombPointerUp(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  if (mobileBombPress.pointerId !== event.pointerId) {
+    return;
+  }
+
+  const shouldTriggerBomb = !mobileBombPress.longPressTriggered && isMobileMode && game.mode === "playing";
+  clearMobileBombPress();
+  if (shouldTriggerBomb) {
+    triggerBomb(game);
+  }
+}
+
+function handleMobileBombPointerCancel(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  if (mobileBombPress.pointerId === event.pointerId) {
+    clearMobileBombPress();
+  }
 }
 
 function showEventBanner(gameState, tag, title, subtext, color = "#ffe584", duration = 2.8) {
@@ -470,6 +612,8 @@ function respawnPlayer(gameState) {
   const player = gameState.player;
   player.x = WIDTH / 2;
   player.y = HEIGHT - 88;
+  mobileInput.targetX = player.x;
+  mobileInput.targetY = player.y;
   player.health = player.maxHealth;
   player.energy = Math.max(player.energy, player.maxEnergy * 0.65);
   player.invuln = 2.6;
@@ -593,6 +737,15 @@ function updateStars(dt) {
 }
 
 function movePlayer(player, dt) {
+  if (isMobileMode) {
+    const follow = Math.min(1, dt * 18);
+    player.x += (mobileInput.targetX - player.x) * follow;
+    player.y += (mobileInput.targetY - player.y) * follow;
+    player.x = Math.max(30, Math.min(WIDTH - 30, player.x));
+    player.y = Math.max(60, Math.min(HEIGHT - 40, player.y));
+    return;
+  }
+
   let dx = 0;
   let dy = 0;
 
@@ -609,7 +762,7 @@ function movePlayer(player, dt) {
 }
 
 function handleShooting(gameState, player) {
-  if (!keys.has("Space")) {
+  if (!isMobileMode && !keys.has("Space")) {
     return;
   }
 
@@ -1329,6 +1482,7 @@ function updateUi() {
   ui.threat.textContent = game.player.cheat ? "무적" : getThreatLabel(game.stage);
   ui.healthFill.style.width = `${(game.player.health / game.player.maxHealth) * 100}%`;
   ui.energyFill.style.width = `${(game.player.energy / game.player.maxEnergy) * 100}%`;
+  ui.mobileBomb.textContent = game.player.cheat ? "폭탄 MAX" : `폭탄 x${game.player.bombs}`;
   applyUiPulse(ui.stage, game.uiPulse.stage, "#ffe584");
   applyUiPulse(ui.weapon, game.uiPulse.weapon, "#ffca62");
   applyUiPulse(ui.threat, game.uiPulse.threat, "#63e6ff");
