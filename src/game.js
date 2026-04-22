@@ -26,6 +26,7 @@ const WAVES_PER_STAGE = 4;
 const keys = new Set();
 const audio = createAudioSystem();
 const spriteSheet = loadShipSprites();
+const pickupSprites = loadPickupSprites();
 
 const threatLabels = ["안정", "경계", "위험", "치명", "악몽"];
 
@@ -363,7 +364,7 @@ function spawnLoot(gameState, x, y) {
   gameState.items.push({
     x,
     y,
-    radius: kind === "health" ? 18 : 14,
+    radius: kind === "health" ? 22 : 20,
     vy: 120,
     bob: Math.random() * TWO_PI,
     kind,
@@ -896,6 +897,14 @@ function loadShipSprites() {
   };
 }
 
+function loadPickupSprites() {
+  return {
+    health: createSprite("../assets/items/health.png"),
+    energy: createSprite("../assets/items/energy.png"),
+    weapon: createSprite("../assets/items/weapon.png"),
+  };
+}
+
 function createSprite(src) {
   const image = new Image();
   image.decoding = "async";
@@ -1007,19 +1016,62 @@ function drawBullets(collection) {
 
 function drawItems() {
   for (const item of game.items) {
-    ctx.save();
-    ctx.translate(item.x, item.y);
-    ctx.rotate(item.bob * 0.3);
+    const pulse = 1 + Math.sin(item.bob * 2.2) * 0.04;
+    const sprite = pickupSprites[item.kind];
+    const glowColor =
+      item.kind === "health" ? "rgba(104, 240, 166, 0.65)" :
+      item.kind === "energy" ? "rgba(99, 230, 255, 0.65)" :
+      "rgba(255, 202, 98, 0.72)";
+    const width =
+      item.kind === "health" ? 42 * pulse :
+      item.kind === "energy" ? 44 * pulse :
+      40 * pulse;
+    const height =
+      item.kind === "health" ? 56 * pulse :
+      item.kind === "energy" ? 44 * pulse :
+      44 * pulse;
 
-    if (item.kind === "health") {
-      drawCapsuleItem(item);
-    } else {
-      ctx.strokeStyle = item.kind === "weapon" ? "#ffe584" : "#63e6ff";
-      ctx.lineWidth = 3;
-      ctx.strokeRect(-10, -10, 20, 20);
+    const drewSprite = drawPickupSprite(
+      sprite,
+      item.x,
+      item.y + Math.sin(item.bob) * 4,
+      width,
+      height,
+      item.bob * 0.18,
+      glowColor
+    );
+    if (!drewSprite) {
+      ctx.save();
+      ctx.translate(item.x, item.y);
+      ctx.rotate(item.bob * 0.3);
+      if (item.kind === "health") {
+        drawCapsuleItem(item);
+      } else {
+        ctx.strokeStyle = item.kind === "weapon" ? "#ffe584" : "#63e6ff";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(-10, -10, 20, 20);
+      }
+      ctx.restore();
     }
-    ctx.restore();
   }
+}
+
+function drawPickupSprite(sprite, x, y, width, height, rotation = 0, glowColor = "rgba(255,255,255,0.35)") {
+  if (!sprite || !sprite.complete || sprite.naturalWidth === 0) {
+    return false;
+  }
+
+  const scale = Math.min(width / sprite.naturalWidth, height / sprite.naturalHeight);
+  const drawWidth = sprite.naturalWidth * scale;
+  const drawHeight = sprite.naturalHeight * scale;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rotation);
+  ctx.shadowBlur = 18;
+  ctx.shadowColor = glowColor;
+  ctx.drawImage(sprite, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+  ctx.restore();
+  return true;
 }
 
 function drawCapsuleItem(item) {
