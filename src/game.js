@@ -908,12 +908,15 @@ function drawShipSprite(sprite, x, y, width, height, rotation = 0, glowColor = "
     return false;
   }
 
+  const scale = Math.min(width / sprite.naturalWidth, height / sprite.naturalHeight);
+  const drawWidth = sprite.naturalWidth * scale;
+  const drawHeight = sprite.naturalHeight * scale;
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(rotation);
   ctx.shadowBlur = 24;
   ctx.shadowColor = glowColor;
-  ctx.drawImage(sprite, -width / 2, -height / 2, width, height);
+  ctx.drawImage(sprite, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
   ctx.restore();
   return true;
 }
