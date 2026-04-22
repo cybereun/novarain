@@ -827,12 +827,12 @@ function drawStars() {
 
 function drawPlayer() {
   const player = game.player;
+  const bob = Math.sin(game.time * 7.5) * 1.8;
   ctx.save();
   if (player.invuln > 0 && Math.floor(player.invuln * 14) % 2 === 0) {
     ctx.globalAlpha = 0.45;
   }
 
-  const bob = Math.sin(game.time * 7.5) * 1.8;
   const drewSprite = drawShipSprite(
     spriteSheet.player,
     player.x,
@@ -850,13 +850,13 @@ function drawPlayer() {
     ctx.strokeStyle = "rgba(99, 230, 255, 0.92)";
     ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.arc(0, 0, 29 + Math.sin(game.time * 6) * 3, 0, TWO_PI);
+    ctx.arc(player.x, player.y + bob, 38 + Math.sin(game.time * 6) * 3, 0, TWO_PI);
     ctx.stroke();
 
     ctx.strokeStyle = "rgba(122, 255, 188, 0.7)";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(0, 0, 37 + Math.cos(game.time * 4) * 2, 0, TWO_PI);
+    ctx.arc(player.x, player.y + bob, 48 + Math.cos(game.time * 4) * 2, 0, TWO_PI);
     ctx.stroke();
   }
   ctx.restore();
