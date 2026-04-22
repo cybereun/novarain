@@ -255,7 +255,8 @@ body.mobile-mode canvas {
 }
 
 .mobile-tip,
-.mobile-bomb {
+.mobile-bomb,
+.mobile-pause {
   background: var(--panel);
   border: 1px solid var(--line);
   box-shadow: 0 12px 45px rgba(0, 0, 0, 0.28);
@@ -291,6 +292,14 @@ body.mobile-mode canvas {
   align-items: center;
   justify-content: center;
   gap: 10px;
+}
+
+.mobile-pause {
+  margin-top: 0;
+  min-width: 72px;
+  padding: 12px 14px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .mobile-bomb:disabled {
@@ -520,6 +529,11 @@ body.mobile-mode .mobile-bomb {
 body.mobile-mode .mobile-bomb-icon {
   width: 28px;
   height: 28px;
+}
+
+body.mobile-mode .mobile-pause {
+  min-width: 68px;
+  padding: 12px 12px;
 }
 
 body.mobile-mode .footer-note {

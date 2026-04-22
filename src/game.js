@@ -17,6 +17,7 @@ const ui = {
   overlayTitle: document.getElementById("overlay-title"),
   overlayBody: document.getElementById("overlay-body"),
   overlayButton: document.getElementById("overlay-button"),
+  mobilePause: document.getElementById("mobile-pause"),
   mobileBomb: document.getElementById("mobile-bomb"),
   mobileBombLabel: document.getElementById("mobile-bomb-label"),
 };
@@ -172,6 +173,13 @@ window.addEventListener("keydown", (event) => {
   keys.add(event.code);
 
   if (event.code === "KeyP") {
+    event.preventDefault();
+    keys.delete(event.code);
+    togglePauseState();
+    return;
+  }
+
+  if (event.code === "KeyP") {
     if (game.mode === "playing") {
       game.mode = "paused";
       showOverlay("일시정지", "작전 중지", "숨을 고르세요. 침공 편대가 다시 밀려옵니다.", "계속");
@@ -209,6 +217,7 @@ canvas.addEventListener("pointermove", handleCanvasPointerMove);
 canvas.addEventListener("pointerup", handleCanvasPointerUp);
 canvas.addEventListener("pointercancel", handleCanvasPointerUp);
 
+ui.mobilePause.addEventListener("pointerdown", handleMobilePausePointerDown);
 ui.mobileBomb.addEventListener("pointerdown", handleMobileBombPointerDown);
 ui.mobileBomb.addEventListener("pointerup", handleMobileBombPointerUp);
 ui.mobileBomb.addEventListener("pointercancel", handleMobileBombPointerCancel);
@@ -243,6 +252,16 @@ function showOverlay(tag, title, body, buttonText) {
 
 function hideOverlay() {
   ui.overlay.classList.add("hidden");
+}
+
+function togglePauseState() {
+  if (game.mode === "playing") {
+    game.mode = "paused";
+    showOverlay("일시정지", "작전 중지", "숨을 고르세요. 침공 편대가 다시 밀려옵니다.", "계속");
+  } else if (game.mode === "paused") {
+    hideOverlay();
+    game.mode = "playing";
+  }
 }
 
 function detectMobileMode() {
@@ -306,6 +325,16 @@ function handleCanvasPointerUp(event) {
   if (canvas.hasPointerCapture(event.pointerId)) {
     canvas.releasePointerCapture(event.pointerId);
   }
+}
+
+function handleMobilePausePointerDown(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  audio.resume();
+  if (!isMobileMode) {
+    return;
+  }
+  togglePauseState();
 }
 
 function clearMobileBombPress() {
@@ -1483,6 +1512,7 @@ function updateUi() {
   ui.threat.textContent = game.player.cheat ? "무적" : getThreatLabel(game.stage);
   ui.healthFill.style.width = `${(game.player.health / game.player.maxHealth) * 100}%`;
   ui.energyFill.style.width = `${(game.player.energy / game.player.maxEnergy) * 100}%`;
+  ui.mobilePause.textContent = game.mode === "paused" ? "계속" : "정지";
   ui.mobileBombLabel.textContent = game.player.cheat ? "폭탄 MAX" : `폭탄 x${game.player.bombs}`;
   applyUiPulse(ui.stage, game.uiPulse.stage, "#ffe584");
   applyUiPulse(ui.weapon, game.uiPulse.weapon, "#ffca62");
