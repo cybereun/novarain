@@ -6,6 +6,7 @@ const ui = {
   score: document.getElementById("score"),
   wave: document.getElementById("wave"),
   bombs: document.getElementById("bombs"),
+  lives: document.getElementById("lives"),
   weapon: document.getElementById("weapon"),
   multiplier: document.getElementById("multiplier"),
   threat: document.getElementById("threat"),
@@ -114,6 +115,7 @@ function createGameState() {
       weapon: 0,
       threat: 0,
       bombs: 0,
+      lives: 0,
       health: 0,
       energy: 0,
       multiplier: 0,
@@ -127,6 +129,7 @@ function createGameState() {
       maxHealth: 100,
       energy: 100,
       maxEnergy: 100,
+      lives: 3,
       weapon: "pulse",
       fireCooldown: 0,
       invuln: 0,
@@ -463,6 +466,22 @@ function explode(gameState, x, y, color, count = 10) {
   }
 }
 
+function respawnPlayer(gameState) {
+  const player = gameState.player;
+  player.x = WIDTH / 2;
+  player.y = HEIGHT - 88;
+  player.health = player.maxHealth;
+  player.energy = Math.max(player.energy, player.maxEnergy * 0.65);
+  player.invuln = 2.6;
+  player.fireCooldown = 0.4;
+  gameState.enemyBullets = [];
+  gameState.flash = 0.45;
+  gameState.screenShake = 8;
+  triggerUiPulse(gameState, ["lives", "health", "energy"], 1.3);
+  pushNotification(gameState, player.x, player.y - 70, `SHIP ${player.lives}/3`, "#ecf7ff", "RESPAWN");
+  showEventBanner(gameState, "EJECT / RELAUNCH", `기체 재출격 ${player.lives}/3`, "잠시 무적 상태로 복귀합니다", "#ecf7ff", 2.2);
+}
+
 function damagePlayer(gameState, damage) {
   const player = gameState.player;
   if (player.cheat || player.invuln > 0) {
@@ -479,6 +498,13 @@ function damagePlayer(gameState, damage) {
 
   if (player.health <= 0) {
     player.health = 0;
+    player.lives -= 1;
+    triggerUiPulse(gameState, ["lives"], 1.4);
+    if (player.lives > 0) {
+      audio.play("pickup-health");
+      respawnPlayer(gameState);
+      return;
+    }
     gameState.mode = "gameover";
     showOverlay(
       "신호 두절",
@@ -1297,6 +1323,7 @@ function updateUi() {
   ui.score.textContent = String(game.score);
   ui.wave.textContent = String(Math.max(1, game.wave - 1));
   ui.bombs.textContent = String(game.player.bombs);
+  ui.lives.textContent = String(game.player.lives);
   ui.weapon.textContent = game.player.cheat ? "풀파워" : weaponProfiles[game.player.weapon].label;
   ui.multiplier.textContent = `x${game.multiplier}`;
   ui.threat.textContent = game.player.cheat ? "무적" : getThreatLabel(game.stage);
@@ -1306,6 +1333,7 @@ function updateUi() {
   applyUiPulse(ui.weapon, game.uiPulse.weapon, "#ffca62");
   applyUiPulse(ui.threat, game.uiPulse.threat, "#63e6ff");
   applyUiPulse(ui.bombs, game.uiPulse.bombs, "#ff7af6");
+  applyUiPulse(ui.lives, game.uiPulse.lives, "#ecf7ff");
   applyUiFillPulse(ui.healthFill, game.uiPulse.health, "#68f0a6");
   applyUiFillPulse(ui.energyFill, game.uiPulse.energy, "#63e6ff");
   applyUiPulse(ui.multiplier, game.uiPulse.multiplier, "#ffe584");
