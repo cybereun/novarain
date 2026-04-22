@@ -97,7 +97,10 @@ function createGameState() {
     waveTimer: 0,
     patternIndex: 0,
     stageBanner: 0,
+    stageBannerTag: "",
     stageBannerText: "",
+    stageBannerSubtext: "",
+    stageBannerColor: "#ffe584",
     stars: createStars(),
     particles: [],
     bullets: [],
@@ -105,6 +108,16 @@ function createGameState() {
     enemies: [],
     items: [],
     bombEchoes: [],
+    notifications: [],
+    uiPulse: {
+      stage: 0,
+      weapon: 0,
+      threat: 0,
+      bombs: 0,
+      health: 0,
+      energy: 0,
+      multiplier: 0,
+    },
     player: {
       x: WIDTH / 2,
       y: HEIGHT - 88,
@@ -197,6 +210,32 @@ function showOverlay(tag, title, body, buttonText) {
 
 function hideOverlay() {
   ui.overlay.classList.add("hidden");
+}
+
+function showEventBanner(gameState, tag, title, subtext, color = "#ffe584", duration = 2.8) {
+  gameState.stageBanner = duration;
+  gameState.stageBannerTag = tag;
+  gameState.stageBannerText = title;
+  gameState.stageBannerSubtext = subtext;
+  gameState.stageBannerColor = color;
+}
+
+function pushNotification(gameState, x, y, text, color = "#ecf7ff", accent = "") {
+  gameState.notifications.push({
+    x,
+    y,
+    text,
+    accent,
+    color,
+    life: 1.2,
+    maxLife: 1.2,
+  });
+}
+
+function triggerUiPulse(gameState, entries, amount = 1) {
+  entries.forEach((entry) => {
+    gameState.uiPulse[entry] = Math.max(gameState.uiPulse[entry] ?? 0, amount);
+  });
 }
 
 function createStars() {
@@ -453,6 +492,8 @@ function damagePlayer(gameState, damage) {
 
 function update(dt) {
   updateStars(dt);
+  updateNotifications(dt);
+  updateUiPulseState(dt);
   if (game.mode !== "playing") {
     updateParticles(dt);
     updateBombEchoes(dt);
@@ -484,8 +525,16 @@ function update(dt) {
     const nextStage = getStageInfo(game.wave).stage;
     if (nextStage > game.stage) {
       game.stage = nextStage;
-      game.stageBanner = 2.8;
-      game.stageBannerText = `${game.stage}단계 · ${getThreatLabel(game.stage)}`;
+      showEventBanner(
+        game,
+        `Stage ${game.stage}`,
+        `${getThreatLabel(game.stage)} 구역 돌입`,
+        "적 화력이 상승합니다",
+        "#ffe584",
+        3.1
+      );
+      triggerUiPulse(game, ["stage", "threat"], 1.2);
+      pushNotification(game, WIDTH / 2, HEIGHT * 0.34, `WAVE ${game.wave}`, "#ffe584", "INBOUND");
       audio.play("stageUp");
     }
     spawnWave(game);
@@ -691,6 +740,25 @@ function updateBombEchoes(dt) {
   }
 }
 
+function updateNotifications(dt) {
+  for (const notification of game.notifications) {
+    notification.y -= 42 * dt;
+    notification.life -= dt;
+  }
+
+  for (let i = game.notifications.length - 1; i >= 0; i -= 1) {
+    if (game.notifications[i].life <= 0) {
+      game.notifications.splice(i, 1);
+    }
+  }
+}
+
+function updateUiPulseState(dt) {
+  Object.keys(game.uiPulse).forEach((key) => {
+    game.uiPulse[key] = Math.max(0, (game.uiPulse[key] ?? 0) - dt * 1.85);
+  });
+}
+
 function checkCollisions() {
   for (let i = game.bullets.length - 1; i >= 0; i -= 1) {
     const bullet = game.bullets[i];
@@ -758,6 +826,8 @@ function collectItem(item) {
   if (item.kind === "energy") {
     player.energy = Math.min(player.maxEnergy, player.energy + 34);
     game.score += 50;
+    triggerUiPulse(game, ["energy", "multiplier"], 1);
+    pushNotification(game, item.x, item.y - 10, "ENERGY +34", "#63e6ff", "CORE");
     audio.play("pickup-energy");
     return;
   }
@@ -765,6 +835,8 @@ function collectItem(item) {
   if (item.kind === "health") {
     player.health = Math.min(player.maxHealth, player.health + 22);
     game.score += 50;
+    triggerUiPulse(game, ["health", "multiplier"], 1);
+    pushNotification(game, item.x, item.y - 10, "HULL +22", "#68f0a6", "REPAIR");
     audio.play("pickup-health");
     return;
   }
@@ -779,6 +851,15 @@ function collectItem(item) {
   }
   player.energy = Math.min(player.maxEnergy, player.energy + 30);
   addScore(game, 140);
+  triggerUiPulse(game, ["weapon", "energy"], 1.25);
+  pushNotification(
+    game,
+    item.x,
+    item.y - 10,
+    getWeaponBannerLabel(player.weapon),
+    "#ffca62",
+    "WEAPON"
+  );
   audio.play("pickup-weapon");
 }
 
@@ -800,6 +881,7 @@ function render() {
   drawPlayer();
   drawParticles();
   drawStageBanner();
+  drawNotifications();
   drawFlash();
 
   ctx.restore();
@@ -910,6 +992,16 @@ function createSprite(src) {
   image.decoding = "async";
   image.src = src;
   return image;
+}
+
+function getWeaponBannerLabel(weapon) {
+  const labels = {
+    pulse: "PULSE",
+    spread: "SPREAD",
+    laser: "LASER",
+    rail: "RAIL",
+  };
+  return labels[weapon] ?? "POWER UP";
 }
 
 function drawShipSprite(sprite, x, y, width, height, rotation = 0, glowColor = "rgba(255,255,255,0.35)") {
@@ -1147,17 +1239,57 @@ function drawStageBanner() {
 
   ctx.save();
   const alpha = Math.min(1, game.stageBanner * 0.8);
+  const accent = game.stageBannerColor || "#ffe584";
+  const pulse = 1 + Math.sin(game.time * 7.5) * 0.025;
+  const bannerWidth = WIDTH - 160;
+  const bannerHeight = 112;
+  const x = (WIDTH - bannerWidth) / 2;
+  const y = HEIGHT * 0.34;
   ctx.globalAlpha = alpha;
+  ctx.translate(WIDTH / 2, y + bannerHeight / 2);
+  ctx.scale(pulse, pulse);
+  ctx.translate(-WIDTH / 2, -(y + bannerHeight / 2));
   ctx.fillStyle = "rgba(4, 17, 26, 0.82)";
-  ctx.fillRect(64, HEIGHT * 0.42, WIDTH - 128, 70);
-  ctx.strokeStyle = "rgba(255, 202, 98, 0.9)";
+  ctx.fillRect(x, y, bannerWidth, bannerHeight);
+  const sweep = ctx.createLinearGradient(x, y, x + bannerWidth, y);
+  sweep.addColorStop(0, "rgba(255,255,255,0)");
+  sweep.addColorStop(0.5, "rgba(255,255,255,0.12)");
+  sweep.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = sweep;
+  ctx.fillRect(x, y, bannerWidth, bannerHeight);
+  ctx.strokeStyle = accent;
   ctx.lineWidth = 2;
-  ctx.strokeRect(64, HEIGHT * 0.42, WIDTH - 128, 70);
-  ctx.fillStyle = "#ffe584";
-  ctx.font = "700 28px Trebuchet MS";
+  ctx.strokeRect(x, y, bannerWidth, bannerHeight);
+  ctx.fillStyle = accent;
+  ctx.font = "700 15px Trebuchet MS";
   ctx.textAlign = "center";
-  ctx.fillText(game.stageBannerText, WIDTH / 2, HEIGHT * 0.42 + 44);
+  ctx.fillText(game.stageBannerTag, WIDTH / 2, y + 26);
+  ctx.font = "700 30px Trebuchet MS";
+  ctx.fillText(game.stageBannerText, WIDTH / 2, y + 60);
+  ctx.fillStyle = "rgba(236, 247, 255, 0.92)";
+  ctx.font = "600 16px Trebuchet MS";
+  ctx.textAlign = "center";
+  ctx.fillText(game.stageBannerSubtext, WIDTH / 2, y + 88);
   ctx.restore();
+}
+
+function drawNotifications() {
+  for (const notification of game.notifications) {
+    const alpha = Math.max(0, notification.life / notification.maxLife);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.textAlign = "center";
+    ctx.fillStyle = notification.color;
+    ctx.font = "700 15px Trebuchet MS";
+    if (notification.accent) {
+      ctx.fillText(notification.accent, notification.x, notification.y - 22);
+    }
+    ctx.shadowBlur = 16;
+    ctx.shadowColor = notification.color;
+    ctx.font = "700 24px Trebuchet MS";
+    ctx.fillText(notification.text, notification.x, notification.y);
+    ctx.restore();
+  }
 }
 
 function updateUi() {
@@ -1170,6 +1302,25 @@ function updateUi() {
   ui.threat.textContent = game.player.cheat ? "무적" : getThreatLabel(game.stage);
   ui.healthFill.style.width = `${(game.player.health / game.player.maxHealth) * 100}%`;
   ui.energyFill.style.width = `${(game.player.energy / game.player.maxEnergy) * 100}%`;
+  applyUiPulse(ui.stage, game.uiPulse.stage, "#ffe584");
+  applyUiPulse(ui.weapon, game.uiPulse.weapon, "#ffca62");
+  applyUiPulse(ui.threat, game.uiPulse.threat, "#63e6ff");
+  applyUiPulse(ui.bombs, game.uiPulse.bombs, "#ff7af6");
+  applyUiFillPulse(ui.healthFill, game.uiPulse.health, "#68f0a6");
+  applyUiFillPulse(ui.energyFill, game.uiPulse.energy, "#63e6ff");
+  applyUiPulse(ui.multiplier, game.uiPulse.multiplier, "#ffe584");
+}
+
+function applyUiPulse(element, amount, color) {
+  const pulse = Math.max(0, amount || 0);
+  element.style.transform = pulse > 0 ? `scale(${1 + pulse * 0.12})` : "scale(1)";
+  element.style.textShadow = pulse > 0 ? `0 0 ${12 + pulse * 18}px ${color}` : "none";
+  element.style.transition = "transform 120ms ease, text-shadow 120ms ease";
+}
+
+function applyUiFillPulse(element, amount, color) {
+  const pulse = Math.max(0, amount || 0);
+  element.style.boxShadow = pulse > 0 ? `0 0 ${10 + pulse * 14}px ${color}` : "none";
 }
 
 function toggleCheatMode(gameState) {
@@ -1185,10 +1336,16 @@ function toggleCheatMode(gameState) {
     player.bombs = 3;
     gameState.flash = 0.4;
     gameState.screenShake = 6;
+    showEventBanner(gameState, "CHEAT MODE", "SUPER CHARGE ONLINE", "Rail cannon and infinite guard", "#63e6ff", 2.6);
+    triggerUiPulse(gameState, ["weapon", "threat", "bombs", "health", "energy"], 1.4);
+    pushNotification(gameState, player.x, player.y - 60, "OVERRIDE ACCEPTED", "#63e6ff", "H-CORE");
     audio.play("stageUp");
   } else {
     player.weapon = player.normalWeapon || "pulse";
     player.invuln = 0;
+    showEventBanner(gameState, "CHEAT MODE", "SYSTEM NORMALIZED", "Standard combat limits restored", "#68f0a6", 2.1);
+    triggerUiPulse(gameState, ["weapon", "threat"], 1);
+    pushNotification(gameState, player.x, player.y - 60, "LIMITER RESTORED", "#68f0a6", "SAFE");
     audio.play("pickup-health");
   }
 }
