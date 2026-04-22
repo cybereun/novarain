@@ -18,6 +18,7 @@ const ui = {
   overlayBody: document.getElementById("overlay-body"),
   overlayButton: document.getElementById("overlay-button"),
   mobileBomb: document.getElementById("mobile-bomb"),
+  mobileBombLabel: document.getElementById("mobile-bomb-label"),
 };
 
 const WIDTH = canvas.width;
@@ -1482,7 +1483,7 @@ function updateUi() {
   ui.threat.textContent = game.player.cheat ? "무적" : getThreatLabel(game.stage);
   ui.healthFill.style.width = `${(game.player.health / game.player.maxHealth) * 100}%`;
   ui.energyFill.style.width = `${(game.player.energy / game.player.maxEnergy) * 100}%`;
-  ui.mobileBomb.textContent = game.player.cheat ? "폭탄 MAX" : `폭탄 x${game.player.bombs}`;
+  ui.mobileBombLabel.textContent = game.player.cheat ? "폭탄 MAX" : `폭탄 x${game.player.bombs}`;
   applyUiPulse(ui.stage, game.uiPulse.stage, "#ffe584");
   applyUiPulse(ui.weapon, game.uiPulse.weapon, "#ffca62");
   applyUiPulse(ui.threat, game.uiPulse.threat, "#63e6ff");

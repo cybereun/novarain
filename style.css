@@ -287,11 +287,23 @@ body.mobile-mode canvas {
   margin-top: 0;
   min-width: 108px;
   padding: 14px 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }
 
 .mobile-bomb:disabled {
   opacity: 0.45;
   filter: grayscale(0.2);
+}
+
+.mobile-bomb-icon {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 12px rgba(255, 166, 61, 0.35));
+  flex: 0 0 auto;
 }
 
 .overlay {
@@ -387,40 +399,66 @@ body.mobile-mode .shell {
 }
 
 body.mobile-mode .topbar {
-  gap: 12px;
-  margin-bottom: 12px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+body.mobile-mode .topbar > div:first-child {
+  display: flex;
+  justify-content: center;
+}
+
+body.mobile-mode .eyebrow {
+  display: none;
+}
+
+body.mobile-mode h1 {
+  font-size: 0.82rem;
+  letter-spacing: 0.28em;
+  text-align: center;
 }
 
 body.mobile-mode .status-cluster {
   width: 100%;
-  justify-content: flex-start;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 6px;
 }
 
 body.mobile-mode .status-card {
-  min-width: 72px;
-  padding: 8px 10px;
-  border-radius: 14px;
+  min-width: 0;
+  flex: 1 1 0;
+  padding: 6px 6px;
+  border-radius: 12px;
+}
+
+body.mobile-mode .status-card span {
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
 }
 
 body.mobile-mode .status-card strong {
-  font-size: 1.05rem;
+  font-size: 0.9rem;
 }
 
 body.mobile-mode .arena-frame {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
   min-height: auto;
-  padding: 76px 8px 76px;
+  padding: 8px 8px 76px;
 }
 
 body.mobile-mode .left-panel {
-  top: 8px;
-  left: 10px;
-  right: 10px;
-  width: auto;
+  position: static;
+  width: min(100%, 800px);
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px 10px;
+  gap: 6px 8px;
   align-items: end;
-  padding: 10px 12px;
+  padding: 8px 10px;
 }
 
 body.mobile-mode .meter-block + .meter-block,
@@ -433,30 +471,17 @@ body.mobile-mode .meter-block {
 }
 
 body.mobile-mode .meter-block label {
-  margin-bottom: 6px;
-  font-size: 0.68rem;
-  letter-spacing: 0.1em;
+  margin-bottom: 4px;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
 }
 
 body.mobile-mode .meter {
-  height: 10px;
+  height: 8px;
 }
 
-body.mobile-mode .detail {
-  min-width: 0;
-}
-
-body.mobile-mode .detail span {
-  font-size: 0.66rem;
-}
-
-body.mobile-mode .detail strong {
-  margin-top: 2px;
-  font-size: 0.92rem;
-}
-
-body.mobile-mode .left-panel .detail:last-child {
-  grid-column: span 2;
+body.mobile-mode .left-panel .detail {
+  display: none;
 }
 
 body.mobile-mode .right-panel {
@@ -490,6 +515,11 @@ body.mobile-mode .mobile-tip span {
 body.mobile-mode .mobile-bomb {
   min-width: 96px;
   padding: 12px 16px;
+}
+
+body.mobile-mode .mobile-bomb-icon {
+  width: 28px;
+  height: 28px;
 }
 
 body.mobile-mode .footer-note {
