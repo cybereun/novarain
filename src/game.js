@@ -25,6 +25,7 @@ const WAVES_PER_STAGE = 4;
 
 const keys = new Set();
 const audio = createAudioSystem();
+const spriteSheet = loadShipSprites();
 
 const threatLabels = ["안정", "경계", "위험", "치명", "악몽"];
 
@@ -233,6 +234,9 @@ function spawnEnemy(type, x, y, wave) {
     points: 100,
     color: "#ff8d78",
     pattern: "line",
+    sprite: "line",
+    spriteWidth: 64,
+    spriteHeight: 78,
     lootChance: 0.18,
     bulletSpeedScale: stage.bulletSpeedScale,
     fireRateScale: stage.fireRateScale,
@@ -249,6 +253,9 @@ function spawnEnemy(type, x, y, wave) {
       points: 120,
       color: "#ffd46a",
       pattern: "zigzag",
+      sprite: "zigzag",
+      spriteWidth: 74,
+      spriteHeight: 86,
       fireMode: "spread",
     };
   }
@@ -263,6 +270,9 @@ function spawnEnemy(type, x, y, wave) {
       points: 240,
       color: "#7db3ff",
       pattern: "drift",
+      sprite: "turret",
+      spriteWidth: 86,
+      spriteHeight: 96,
       fireMode: "burst",
       lootChance: 0.34,
     };
@@ -278,6 +288,9 @@ function spawnEnemy(type, x, y, wave) {
       points: 500,
       color: "#ff79c8",
       pattern: "ace",
+      sprite: "ace",
+      spriteWidth: 98,
+      spriteHeight: 108,
       fireMode: "ring",
       lootChance: 0.75,
       anchorX: x,
@@ -819,6 +832,94 @@ function drawPlayer() {
     ctx.globalAlpha = 0.45;
   }
 
+  const bob = Math.sin(game.time * 7.5) * 1.8;
+  const drewSprite = drawShipSprite(
+    spriteSheet.player,
+    player.x,
+    player.y + bob,
+    96,
+    112,
+    0,
+    "rgba(99, 230, 255, 0.55)"
+  );
+  if (!drewSprite) {
+    drawPlayerFallback(player);
+  }
+
+  if (player.cheat) {
+    ctx.strokeStyle = "rgba(99, 230, 255, 0.92)";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(0, 0, 29 + Math.sin(game.time * 6) * 3, 0, TWO_PI);
+    ctx.stroke();
+
+    ctx.strokeStyle = "rgba(122, 255, 188, 0.7)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, 37 + Math.cos(game.time * 4) * 2, 0, TWO_PI);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawEnemies() {
+  for (const enemy of game.enemies) {
+    const rotation =
+      enemy.pattern === "zigzag" ? Math.sin(enemy.age * 2.7) * 0.18 :
+      enemy.pattern === "drift" ? Math.sin(enemy.age * 1.2) * 0.07 :
+      enemy.pattern === "ace" ? Math.sin(enemy.age * 1.9) * 0.12 :
+      0;
+    const sprite = spriteSheet[enemy.sprite] ?? spriteSheet.line;
+    const drewSprite = drawShipSprite(
+      sprite,
+      enemy.x,
+      enemy.y,
+      enemy.spriteWidth ?? enemy.radius * 3.6,
+      enemy.spriteHeight ?? enemy.radius * 4,
+      rotation,
+      enemy.color
+    );
+    if (!drewSprite) {
+      drawEnemyFallback(enemy, rotation);
+    }
+    drawEnemyHealthBar(enemy);
+  }
+}
+
+function loadShipSprites() {
+  return {
+    player: createSprite("../assets/ships/player-ship.png"),
+    line: createSprite("../assets/ships/enemy-line.png"),
+    zigzag: createSprite("../assets/ships/enemy-zigzag.png"),
+    turret: createSprite("../assets/ships/enemy-turret.png"),
+    ace: createSprite("../assets/ships/enemy-ace.png"),
+  };
+}
+
+function createSprite(src) {
+  const image = new Image();
+  image.decoding = "async";
+  image.src = src;
+  return image;
+}
+
+function drawShipSprite(sprite, x, y, width, height, rotation = 0, glowColor = "rgba(255,255,255,0.35)") {
+  if (!sprite || !sprite.complete || sprite.naturalWidth === 0) {
+    return false;
+  }
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rotation);
+  ctx.shadowBlur = 24;
+  ctx.shadowColor = glowColor;
+  ctx.drawImage(sprite, -width / 2, -height / 2, width, height);
+  ctx.restore();
+  return true;
+}
+
+function drawPlayerFallback(player) {
+  ctx.save();
   ctx.translate(player.x, player.y);
   ctx.fillStyle = "#bff8ff";
   ctx.beginPath();
@@ -839,53 +940,53 @@ function drawPlayer() {
 
   ctx.fillStyle = "#ffca62";
   ctx.fillRect(-7, 14, 14, 11);
-
-  if (player.cheat) {
-    ctx.strokeStyle = "rgba(99, 230, 255, 0.92)";
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.arc(0, 0, 29 + Math.sin(game.time * 6) * 3, 0, TWO_PI);
-    ctx.stroke();
-
-    ctx.strokeStyle = "rgba(122, 255, 188, 0.7)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(0, 0, 37 + Math.cos(game.time * 4) * 2, 0, TWO_PI);
-    ctx.stroke();
-  }
   ctx.restore();
 }
 
-function drawEnemies() {
-  for (const enemy of game.enemies) {
-    ctx.save();
-    ctx.translate(enemy.x, enemy.y);
-    ctx.fillStyle = enemy.color;
+function drawEnemyFallback(enemy, rotation = 0) {
+  ctx.save();
+  ctx.translate(enemy.x, enemy.y);
+  ctx.rotate(rotation);
+  ctx.fillStyle = enemy.color;
 
-    if (enemy.pattern === "ace") {
-      ctx.beginPath();
-      ctx.moveTo(0, -30);
-      ctx.lineTo(30, 12);
-      ctx.lineTo(0, 26);
-      ctx.lineTo(-30, 12);
-      ctx.closePath();
-      ctx.fill();
-    } else if (enemy.pattern === "drift") {
-      ctx.fillRect(-22, -18, 44, 36);
-      ctx.clearRect(-8, -8, 16, 16);
-    } else {
-      ctx.beginPath();
-      ctx.moveTo(0, -enemy.radius);
-      ctx.lineTo(enemy.radius, enemy.radius * 0.7);
-      ctx.lineTo(-enemy.radius, enemy.radius * 0.7);
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    ctx.fillStyle = "rgba(255,255,255,0.8)";
-    ctx.fillRect(-8, -6, 16, 6);
-    ctx.restore();
+  if (enemy.pattern === "ace") {
+    ctx.beginPath();
+    ctx.moveTo(0, -30);
+    ctx.lineTo(30, 12);
+    ctx.lineTo(0, 26);
+    ctx.lineTo(-30, 12);
+    ctx.closePath();
+    ctx.fill();
+  } else if (enemy.pattern === "drift") {
+    ctx.fillRect(-22, -18, 44, 36);
+    ctx.clearRect(-8, -8, 16, 16);
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(0, -enemy.radius);
+    ctx.lineTo(enemy.radius, enemy.radius * 0.7);
+    ctx.lineTo(-enemy.radius, enemy.radius * 0.7);
+    ctx.closePath();
+    ctx.fill();
   }
+
+  ctx.fillStyle = "rgba(255,255,255,0.8)";
+  ctx.fillRect(-8, -6, 16, 6);
+  ctx.restore();
+}
+
+function drawEnemyHealthBar(enemy) {
+  if (enemy.hp >= enemy.maxHp) {
+    return;
+  }
+
+  const width = Math.max(26, enemy.radius * 2.1);
+  const y = enemy.y + enemy.radius + 12;
+  ctx.save();
+  ctx.fillStyle = "rgba(3, 8, 15, 0.8)";
+  ctx.fillRect(enemy.x - width / 2, y, width, 5);
+  ctx.fillStyle = enemy.color;
+  ctx.fillRect(enemy.x - width / 2, y, width * Math.max(0, enemy.hp / enemy.maxHp), 5);
+  ctx.restore();
 }
 
 function drawBullets(collection) {
