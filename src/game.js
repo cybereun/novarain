@@ -148,6 +148,7 @@ function createGameState() {
       lives: 3,
       weapon: "pulse",
       fireCooldown: 0,
+      fireHoldTime: 0,
       invuln: 0,
       bombs: 3,
       cheat: false,
@@ -711,7 +712,22 @@ function update(dt) {
   game.stageBanner = Math.max(0, game.stageBanner - dt);
   player.fireCooldown -= dt;
   player.invuln = Math.max(0, player.invuln - dt);
-  player.energy = player.cheat ? player.maxEnergy : Math.min(player.maxEnergy, player.energy + dt * 10);
+  const primaryFireHeld = isPrimaryFireHeld();
+  player.fireHoldTime = primaryFireHeld
+    ? Math.min(3.2, player.fireHoldTime + dt)
+    : Math.max(0, player.fireHoldTime - dt * 3.8);
+
+  if (player.cheat) {
+    player.energy = player.maxEnergy;
+  } else {
+    const regenRate = primaryFireHeld ? 18 : 36;
+    player.energy = Math.min(player.maxEnergy, player.energy + dt * regenRate);
+
+    if (player.fireHoldTime > 0.65) {
+      const sustainedDrain = 5 + (player.fireHoldTime - 0.65) * 5.5;
+      player.energy = Math.max(0, player.energy - dt * Math.min(16, sustainedDrain));
+    }
+  }
   if (player.cheat) {
     player.health = player.maxHealth;
     player.energy = player.maxEnergy;
@@ -792,12 +808,16 @@ function movePlayer(player, dt) {
 }
 
 function handleShooting(gameState, player) {
-  if (!isMobileMode && !keys.has("Space")) {
+  if (!isPrimaryFireHeld()) {
     return;
   }
 
   const weapon = weaponProfiles[player.weapon];
-  if (player.fireCooldown > 0 || (!player.cheat && player.energy < weapon.energyCost)) {
+  if (player.fireCooldown > 0) {
+    return;
+  }
+
+  if (!player.cheat && player.energy <= 2 && player.fireHoldTime > 1.1) {
     return;
   }
 
@@ -805,10 +825,13 @@ function handleShooting(gameState, player) {
   if (player.cheat) {
     fireCheatVolley(gameState, player);
   } else {
-    player.energy -= weapon.energyCost;
     weapon.fire(gameState, player);
   }
   audio.play(`shoot-${player.weapon}`);
+}
+
+function isPrimaryFireHeld() {
+  return isMobileMode || keys.has("Space");
 }
 
 function updateBullets(collection, dt) {
